@@ -93,7 +93,8 @@ public class ExpressionEnrichmentServiceImpl implements ExpressionEnrichmentServ
                                                                    Map<String, List<MolecularProfileCaseIdentifier>> molecularProfileCaseSets, EnrichmentType enrichmentType)
         throws MolecularProfileNotFoundException {
         MolecularProfile molecularProfile = molecularProfileService.getMolecularProfile(molecularProfileId);
-        validateMolecularProfile(molecularProfile, Arrays.asList(MolecularAlterationType.GENERIC_ASSAY));
+        validateMolecularProfile(molecularProfile, Arrays.asList(MolecularAlterationType.GENERIC_ASSAY), "SUMMARY");
+
         Iterable<GenericAssayMolecularAlteration> maItr = molecularDataRepository
             .getGenericAssayMolecularAlterationsIterable(molecularProfile.getStableId(), null, "SUMMARY");
         Map<String, List<MolecularProfileCaseIdentifier>> filteredMolecularProfileCaseSets;
@@ -196,22 +197,23 @@ public class ExpressionEnrichmentServiceImpl implements ExpressionEnrichmentServ
 
     private MolecularProfile getAndValidateMolecularProfile(String molecularProfileId, String dataType) throws MolecularProfileNotFoundException {
         MolecularProfile molecularProfile = molecularProfileService.getMolecularProfile(molecularProfileId);
-        validateMolecularProfile(molecularProfile, Arrays.asList(MolecularProfile.MolecularAlterationType.GENERIC_ASSAY), dataType);
+        validateMolecularProfile(molecularProfile, Arrays.asList(MolecularAlterationType.GENERIC_ASSAY), "SUMMARY");
         return molecularProfile;
     }
 
-    private void validateMolecularProfile(MolecularProfile molecularProfile,
-                                          List<MolecularProfile.MolecularAlterationType> validMolecularAlterationTypes,
-                                          String dataType) throws MolecularProfileNotFoundException {
-        if (!validMolecularAlterationTypes.contains(molecularProfile.getMolecularAlterationType())) {
-            // Check alteration type
-            throw new MolecularProfileNotFoundException(molecularProfile.getStableId());
-        }
-        // Check datatype for binary or categorical
-        if(molecularProfile.getMolecularAlterationType().equals(MolecularProfile.MolecularAlterationType.GENERIC_ASSAY) &&
-            !molecularProfile.getDatatype().equals(dataType))
-            throw new MolecularProfileNotFoundException(molecularProfile.getStableId());
+    private void validateMolecularProfile(MolecularProfile molecularProfile, 
+                                      List<MolecularAlterationType> validTypes, 
+                                      String requiredDataType) throws MolecularProfileNotFoundException {
+
+    if (!validTypes.contains(molecularProfile.getMolecularAlterationType())) {
+        throw new MolecularProfileNotFoundException("Invalid MolecularAlterationType for profile: " + molecularProfile.getStableId());
     }
+    if (molecularProfile.getMolecularAlterationType().equals(MolecularAlterationType.GENERIC_ASSAY) &&
+        !molecularProfile.getDatatype().equals(requiredDataType)) {
+        throw new MolecularProfileNotFoundException("Invalid data type for profile: " + molecularProfile.getStableId());
+    }
+}
+
 
     private Map<String, List<MolecularProfileCaseIdentifier>> filterMolecularProfileCaseSets(MolecularProfile molecularProfile, Map<String, List<MolecularProfileCaseIdentifier>> molecularProfileCaseSets) {
         if (BooleanUtils.isTrue(molecularProfile.getPatientLevel())) {
@@ -304,6 +306,7 @@ private Map<String, List<MolecularProfileCaseIdentifier>> buildFilteredMolecular
             enrichments.get(i).setqValue(qValues[i]);
         }
     }
+    
     private void validateMolecularProfile(MolecularProfile molecularProfile,
                                           List<MolecularAlterationType> validMolecularAlterationTypes) throws MolecularProfileNotFoundException {
         if (!validMolecularAlterationTypes.contains(molecularProfile.getMolecularAlterationType())) {
