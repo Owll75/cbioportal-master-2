@@ -105,7 +105,7 @@ public class ExpressionEnrichmentServiceImpl implements ExpressionEnrichmentServ
             Map<String, Integer> sampleIdToPatientIdMap = samples.stream().collect(Collectors.toMap(Sample::getStableId, Sample::getPatientId));
             // Build filteredMolecularProfileCaseSets
             filteredMolecularProfileCaseSets = new HashMap<>();
-            filteredMolecularProfileCaseSets = setupFilteredMolecularProfileCaseSets(molecularProfileCaseSets, sampleIdToPatientIdMap);
+            filteredMolecularProfileCaseSets = buildFilteredMolecularProfileCaseSets(molecularProfileCaseSets, sampleIdToPatientIdMap);
         } else {
             filteredMolecularProfileCaseSets = molecularProfileCaseSets;
         }
@@ -223,7 +223,7 @@ public class ExpressionEnrichmentServiceImpl implements ExpressionEnrichmentServ
             Map<String, Integer> sampleIdToPatientIdMap = samples.stream().collect(Collectors.toMap(Sample::getStableId, Sample::getPatientId));
 
             Map<String, List<MolecularProfileCaseIdentifier>> filteredMolecularProfileCaseSets = new HashMap<>();
-            filteredMolecularProfileCaseSets = setupFilteredMolecularProfileCaseSets(molecularProfileCaseSets, sampleIdToPatientIdMap);
+            filteredMolecularProfileCaseSets = buildFilteredMolecularProfileCaseSets(molecularProfileCaseSets, sampleIdToPatientIdMap);
             return filteredMolecularProfileCaseSets;
         } else {
             return molecularProfileCaseSets;
@@ -257,6 +257,35 @@ private Map<String, List<MolecularProfileCaseIdentifier>> setupFilteredMolecular
     }
     return filteredSets;
 }
+// Method to get unique identifiers for a single entry based on patient IDs
+private List<MolecularProfileCaseIdentifier> getUniqueIdentifiersByPatientId(
+        List<MolecularProfileCaseIdentifier> identifiers, Map<String, Integer> sampleIdToPatientIdMap) {
+
+    Set<Integer> patientSet = new HashSet<>();
+    List<MolecularProfileCaseIdentifier> uniqueIdentifiers = new ArrayList<>();
+
+    for (MolecularProfileCaseIdentifier caseIdentifier : identifiers) {
+        Integer patientId = sampleIdToPatientIdMap.get(caseIdentifier.getCaseId());
+        if (patientId != null && !patientSet.contains(patientId)) {
+            uniqueIdentifiers.add(caseIdentifier);
+            patientSet.add(patientId);
+        }
+    }
+    return uniqueIdentifiers;
+}
+
+// Method to build the entire filtered molecular profile case set map
+private Map<String, List<MolecularProfileCaseIdentifier>> buildFilteredMolecularProfileCaseSets(
+        Map<String, List<MolecularProfileCaseIdentifier>> molecularProfileCaseSets, 
+        Map<String, Integer> sampleIdToPatientIdMap) {
+
+    Map<String, List<MolecularProfileCaseIdentifier>> filteredSets = new HashMap<>();
+    molecularProfileCaseSets.forEach((key, identifiers) -> 
+        filteredSets.put(key, getUniqueIdentifiersByPatientId(identifiers, sampleIdToPatientIdMap))
+    );
+    return filteredSets;
+}
+
 
 
     private Map<String, GenericAssayMeta> getGenericAssayMetaByStableId(List<String> stableIds, String molecularProfileId) {
