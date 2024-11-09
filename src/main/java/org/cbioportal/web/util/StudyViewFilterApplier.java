@@ -430,11 +430,7 @@ public class StudyViewFilterApplier {
                     .map(GeneFilterQuery::getHugoGeneSymbol)
                     .toList();
 
-                Map<String, Integer> symbolToEntrezGeneId = geneService
-                    .fetchGenes(new ArrayList<>(hugoGeneSymbols),
-                        GeneIdType.HUGO_GENE_SYMBOL.name(), Projection.SUMMARY.name())
-                    .stream()
-                    .collect(Collectors.toMap(Gene::getHugoGeneSymbol, Gene::getEntrezGeneId));
+                Map<String, Integer> symbolToEntrezGeneId = processGeneQueries(geneQueries);
 
                 geneQueries.removeIf(
                     q -> !symbolToEntrezGeneId.containsKey(q.getHugoGeneSymbol())
@@ -469,7 +465,18 @@ public class StudyViewFilterApplier {
         }
         return sampleIdentifiers;
     }
-
+    private Map<String, Integer> processGeneQueries(List<GeneFilterQuery> geneQueries) {
+        List<String> hugoGeneSymbols = geneQueries.stream()
+            .map(GeneFilterQuery::getHugoGeneSymbol)
+            .toList();
+    
+        Map<String, Integer> symbolToEntrezGeneId = processGeneQueries(geneQueries);
+    
+        geneQueries.removeIf(q -> !symbolToEntrezGeneId.containsKey(q.getHugoGeneSymbol()));
+        geneQueries.forEach(q -> q.setEntrezGeneId(symbolToEntrezGeneId.get(q.getHugoGeneSymbol())));
+    
+        return symbolToEntrezGeneId;
+    }
     private List<SampleIdentifier> filterStructuralVariantGenes(List<GeneFilter> svGenefilters,
                                                                 Map<String, MolecularProfile> molecularProfileMap, List<SampleIdentifier> sampleIdentifiers) {
 
@@ -498,11 +505,7 @@ public class StudyViewFilterApplier {
                     .map(GeneFilterQuery::getHugoGeneSymbol)
                     .toList();
 
-                Map<String, Integer> symbolToEntrezGeneId = geneService
-                    .fetchGenes(new ArrayList<>(hugoGeneSymbols),
-                        GeneIdType.HUGO_GENE_SYMBOL.name(), Projection.SUMMARY.name())
-                    .stream()
-                    .collect(Collectors.toMap(Gene::getHugoGeneSymbol, Gene::getEntrezGeneId));
+                Map<String, Integer> symbolToEntrezGeneId = processGeneQueries(geneQueries);
 
                 geneQueries.removeIf(
                     q -> !symbolToEntrezGeneId.containsKey(q.getHugoGeneSymbol())
@@ -581,10 +584,7 @@ public class StudyViewFilterApplier {
                         List<String> hugoGeneSymbols = filteredGeneQueries.stream()
                             .map(GeneFilterQuery::getHugoGeneSymbol).toList();
 
-                        Map<String, Integer> symbolToEntrezGeneId = geneService
-                            .fetchGenes(new ArrayList<>(hugoGeneSymbols),
-                                GeneIdType.HUGO_GENE_SYMBOL.name(), Projection.SUMMARY.name())
-                            .stream().collect(Collectors.toMap(Gene::getHugoGeneSymbol, Gene::getEntrezGeneId));
+                        Map<String, Integer> symbolToEntrezGeneId = processGeneQueries(geneQueries);
 
                         filteredGeneQueries.removeIf(
                             q -> !symbolToEntrezGeneId.containsKey(q.getHugoGeneSymbol())
