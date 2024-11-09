@@ -103,7 +103,7 @@ public class ExpressionEnrichmentServiceImpl implements ExpressionEnrichmentServ
             List<String> sampleIds = molecularProfileCaseSets.values().stream().flatMap(Collection::stream).map(MolecularProfileCaseIdentifier::getCaseId).collect(Collectors.toList());
             List<String> studyIds = Collections.nCopies(sampleIds.size(), molecularProfile.getCancerStudyIdentifier());
             List<Sample> samples = sampleService.fetchSamples(studyIds, sampleIds, "SUMMARY");
-            Map<String, Integer> sampleIdToPatientIdMap = samples.stream().collect(Collectors.toMap(Sample::getStableId, Sample::getPatientId));
+            Map<String, Integer> sampleIdToPatientIdMap = getSampleIdToPatientIdMap(molecularProfile.getCancerStudyIdentifier(), sampleIds);
             // Build filteredMolecularProfileCaseSets
             filteredMolecularProfileCaseSets = new HashMap<>();
             filteredMolecularProfileCaseSets = buildFilteredMolecularProfileCaseSets(molecularProfileCaseSets, sampleIdToPatientIdMap);
@@ -222,7 +222,7 @@ public class ExpressionEnrichmentServiceImpl implements ExpressionEnrichmentServ
             List<String> sampleIds = molecularProfileCaseSets.values().stream().flatMap(Collection::stream).map(MolecularProfileCaseIdentifier::getCaseId).collect(Collectors.toList());
             List<String> studyIds = Collections.nCopies(sampleIds.size(), molecularProfile.getCancerStudyIdentifier());
             List<Sample> samples = sampleService.fetchSamples(studyIds, sampleIds, "ID");
-            Map<String, Integer> sampleIdToPatientIdMap = samples.stream().collect(Collectors.toMap(Sample::getStableId, Sample::getPatientId));
+            Map<String, Integer> sampleIdToPatientIdMap = getSampleIdToPatientIdMap(molecularProfile.getCancerStudyIdentifier(), sampleIds);
 
             Map<String, List<MolecularProfileCaseIdentifier>> filteredMolecularProfileCaseSets = new HashMap<>();
             filteredMolecularProfileCaseSets = buildFilteredMolecularProfileCaseSets(molecularProfileCaseSets, sampleIdToPatientIdMap);
@@ -287,7 +287,11 @@ private Map<String, List<MolecularProfileCaseIdentifier>> buildFilteredMolecular
     );
     return filteredSets;
 }
-
+private Map<String, Integer> getSampleIdToPatientIdMap(String studyId, List<String> sampleIds) {
+    List<String> studyIds = Collections.nCopies(sampleIds.size(), studyId);
+    List<Sample> samples = sampleService.fetchSamples(studyIds, sampleIds, "SUMMARY");
+    return samples.stream().collect(Collectors.toMap(Sample::getStableId, Sample::getPatientId));
+}
 
 
     private Map<String, GenericAssayMeta> getGenericAssayMetaByStableId(List<String> stableIds, String molecularProfileId) {
