@@ -430,21 +430,9 @@ public class StudyViewFilterApplier {
                     .map(GeneFilterQuery::getHugoGeneSymbol)
                     .toList();
 
-                Map<String, Integer> symbolToEntrezGeneId = geneService
-                    .fetchGenes(new ArrayList<>(hugoGeneSymbols),
-                        GeneIdType.HUGO_GENE_SYMBOL.name(), Projection.SUMMARY.name())
-                    .stream()
-                    .collect(Collectors.toMap(Gene::getHugoGeneSymbol, Gene::getEntrezGeneId));
-
-                geneQueries.removeIf(
-                    q -> !symbolToEntrezGeneId.containsKey(q.getHugoGeneSymbol())
-                );
-
-                geneQueries.stream().forEach(
-                    q -> q.setEntrezGeneId(symbolToEntrezGeneId.get(q.getHugoGeneSymbol()))
-                );
-                studyViewFilterUtil.extractStudyAndSampleIds(sampleIdentifiers, studyIds, sampleIds);
-
+                Map<String, Integer> symbolToEntrezGeneId = mapGeneSymbolsToEntrezIds(geneQueries);
+                filterUnrecognizedGeneQueries(symbolToEntrezGeneId, geneQueries);
+                setEntrezGeneIdsForGeneQueries(symbolToEntrezGeneId, geneQueries);
                 List<String> molecularProfileIds = new ArrayList<>();
                 int removedSampleCount = 0;
                 for (int i = 0; i < studyIds.size(); i++) {
@@ -469,6 +457,27 @@ public class StudyViewFilterApplier {
         }
         return sampleIdentifiers;
     }
+    // Helper method to map gene symbols to Entrez IDs
+private Map<String, Integer> mapGeneSymbolsToEntrezIds(List<GeneFilterQuery> geneQueries) {
+    List<String> hugoGeneSymbols = geneQueries.stream()
+        .map(GeneFilterQuery::getHugoGeneSymbol)
+        .toList();
+
+    return geneService.fetchGenes(new ArrayList<>(hugoGeneSymbols),
+        GeneIdType.HUGO_GENE_SYMBOL.name(), Projection.SUMMARY.name())
+        .stream()
+        .collect(Collectors.toMap(Gene::getHugoGeneSymbol, Gene::getEntrezGeneId));
+}
+
+// Helper method to filter unrecognized gene queries
+private void filterUnrecognizedGeneQueries(Map<String, Integer> symbolToEntrezGeneId, List<GeneFilterQuery> geneQueries) {
+    geneQueries.removeIf(q -> !symbolToEntrezGeneId.containsKey(q.getHugoGeneSymbol()));
+}
+
+// Helper method to set EntrezGeneId for recognized gene queries
+private void setEntrezGeneIdsForGeneQueries(Map<String, Integer> symbolToEntrezGeneId, List<GeneFilterQuery> geneQueries) {
+    geneQueries.forEach(q -> q.setEntrezGeneId(symbolToEntrezGeneId.get(q.getHugoGeneSymbol())));
+}
 
     private List<SampleIdentifier> filterStructuralVariantGenes(List<GeneFilter> svGenefilters,
                                                                 Map<String, MolecularProfile> molecularProfileMap, List<SampleIdentifier> sampleIdentifiers) {
@@ -498,11 +507,7 @@ public class StudyViewFilterApplier {
                     .map(GeneFilterQuery::getHugoGeneSymbol)
                     .toList();
 
-                Map<String, Integer> symbolToEntrezGeneId = geneService
-                    .fetchGenes(new ArrayList<>(hugoGeneSymbols),
-                        GeneIdType.HUGO_GENE_SYMBOL.name(), Projection.SUMMARY.name())
-                    .stream()
-                    .collect(Collectors.toMap(Gene::getHugoGeneSymbol, Gene::getEntrezGeneId));
+                Map<String, Integer> symbolToEntrezGeneId = mapGeneSymbolsToEntrezIds(geneQueries);
 
                 geneQueries.removeIf(
                     q -> !symbolToEntrezGeneId.containsKey(q.getHugoGeneSymbol())
