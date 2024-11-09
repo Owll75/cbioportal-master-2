@@ -105,17 +105,7 @@ public class ExpressionEnrichmentServiceImpl implements ExpressionEnrichmentServ
             Map<String, Integer> sampleIdToPatientIdMap = samples.stream().collect(Collectors.toMap(Sample::getStableId, Sample::getPatientId));
             // Build filteredMolecularProfileCaseSets
             filteredMolecularProfileCaseSets = new HashMap<>();
-            for (Map.Entry<String, List<MolecularProfileCaseIdentifier>> pair : molecularProfileCaseSets.entrySet()) {
-                Set<Integer> patientSet = new HashSet<Integer>();
-                List<MolecularProfileCaseIdentifier> identifierListUniqueByPatientId = new ArrayList<>();
-                for (MolecularProfileCaseIdentifier caseIdentifier : pair.getValue()) {
-                    if (!patientSet.contains(sampleIdToPatientIdMap.get(caseIdentifier.getCaseId()))) {
-                        identifierListUniqueByPatientId.add(caseIdentifier);
-                        patientSet.add(sampleIdToPatientIdMap.get(caseIdentifier.getCaseId()));
-                    }
-                }
-                filteredMolecularProfileCaseSets.put(pair.getKey(), identifierListUniqueByPatientId);
-            }
+            filteredMolecularProfileCaseSets = setupFilteredMolecularProfileCaseSets(molecularProfileCaseSets, sampleIdToPatientIdMap);
         } else {
             filteredMolecularProfileCaseSets = molecularProfileCaseSets;
         }
@@ -233,22 +223,41 @@ public class ExpressionEnrichmentServiceImpl implements ExpressionEnrichmentServ
             Map<String, Integer> sampleIdToPatientIdMap = samples.stream().collect(Collectors.toMap(Sample::getStableId, Sample::getPatientId));
 
             Map<String, List<MolecularProfileCaseIdentifier>> filteredMolecularProfileCaseSets = new HashMap<>();
-            for (Map.Entry<String, List<MolecularProfileCaseIdentifier>> pair : molecularProfileCaseSets.entrySet()) {
-                Set<Integer> patientSet = new HashSet<Integer>();
-                List<MolecularProfileCaseIdentifier> identifierListUniqueByPatientId = new ArrayList<>();
-                for (MolecularProfileCaseIdentifier caseIdentifier : pair.getValue()) {
-                    if (!patientSet.contains(sampleIdToPatientIdMap.get(caseIdentifier.getCaseId()))) {
-                        identifierListUniqueByPatientId.add(caseIdentifier);
-                        patientSet.add(sampleIdToPatientIdMap.get(caseIdentifier.getCaseId()));
-                    }
-                }
-                filteredMolecularProfileCaseSets.put(pair.getKey(), identifierListUniqueByPatientId);
-            }
+            filteredMolecularProfileCaseSets = setupFilteredMolecularProfileCaseSets(molecularProfileCaseSets, sampleIdToPatientIdMap);
             return filteredMolecularProfileCaseSets;
         } else {
             return molecularProfileCaseSets;
         }
     }
+    private List<MolecularProfileCaseIdentifier> filterIdentifiersByUniquePatientId(
+        List<MolecularProfileCaseIdentifier> identifiers, Map<String, Integer> sampleIdToPatientIdMap) {
+
+    Set<Integer> patientSet = new HashSet<>();
+    List<MolecularProfileCaseIdentifier> uniqueIdentifiers = new ArrayList<>();
+
+    for (MolecularProfileCaseIdentifier caseIdentifier : identifiers) {
+        Integer patientId = sampleIdToPatientIdMap.get(caseIdentifier.getCaseId());
+        if (!patientSet.contains(patientId)) {
+            uniqueIdentifiers.add(caseIdentifier);
+            patientSet.add(patientId);
+        }
+    }
+    return uniqueIdentifiers;
+}
+// Refactored method for setting up filtered molecular profile case sets
+private Map<String, List<MolecularProfileCaseIdentifier>> setupFilteredMolecularProfileCaseSets(
+        Map<String, List<MolecularProfileCaseIdentifier>> molecularProfileCaseSets, 
+        Map<String, Integer> sampleIdToPatientIdMap) {
+
+    Map<String, List<MolecularProfileCaseIdentifier>> filteredSets = new HashMap<>();
+
+    for (Map.Entry<String, List<MolecularProfileCaseIdentifier>> pair : molecularProfileCaseSets.entrySet()) {
+        List<MolecularProfileCaseIdentifier> uniqueIdentifiers = filterIdentifiersByUniquePatientId(pair.getValue(), sampleIdToPatientIdMap);
+        filteredSets.put(pair.getKey(), uniqueIdentifiers);
+    }
+    return filteredSets;
+}
+
 
     private Map<String, GenericAssayMeta> getGenericAssayMetaByStableId(List<String> stableIds, String molecularProfileId) {
         return genericAssayService.getGenericAssayMetaByStableIdsAndMolecularIds(stableIds, stableIds.stream().map(sid -> molecularProfileId)
