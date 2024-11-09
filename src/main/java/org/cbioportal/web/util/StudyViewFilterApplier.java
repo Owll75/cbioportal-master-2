@@ -417,10 +417,7 @@ public class StudyViewFilterApplier {
                 .map(molecularProfileMap::get)
                 .toList();
 
-            Map<String, List<MolecularProfile>> mapByStudyId = filteredMolecularProfiles
-                .stream()
-                .collect(Collectors.groupingBy(MolecularProfile::getCancerStudyIdentifier));
-
+            Map<String, List<MolecularProfile>> mapByStudyId = mapProfilesByStudyId(genefilter, molecularProfileMap);
             for (List<GeneFilterQuery> geneQueries : genefilter.getGeneQueries()) {
                 List<String> studyIds = new ArrayList<>();
                 List<String> sampleIds = new ArrayList<>();
@@ -469,6 +466,14 @@ public class StudyViewFilterApplier {
         }
         return sampleIdentifiers;
     }
+    // Helper method to map profiles by study ID
+private Map<String, List<MolecularProfile>> mapProfilesByStudyId(GeneFilter geneFilter, Map<String, MolecularProfile> molecularProfileMap) {
+    return geneFilter.getMolecularProfileIds()
+        .stream()
+        .map(molecularProfileMap::get)
+        .collect(Collectors.groupingBy(MolecularProfile::getCancerStudyIdentifier));
+}
+
 
     private List<SampleIdentifier> filterStructuralVariantGenes(List<GeneFilter> svGenefilters,
                                                                 Map<String, MolecularProfile> molecularProfileMap, List<SampleIdentifier> sampleIdentifiers) {
@@ -485,9 +490,7 @@ public class StudyViewFilterApplier {
                 .map(molecularProfileMap::get)
                 .toList();
 
-            Map<String, List<MolecularProfile>> mapByStudyId = filteredMolecularProfiles
-                .stream()
-                .collect(Collectors.groupingBy(MolecularProfile::getCancerStudyIdentifier));
+            Map<String, List<MolecularProfile>> mapByStudyId = mapProfilesByStudyId(genefilter, molecularProfileMap);
 
             for (List<GeneFilterQuery> geneQueries : genefilter.getGeneQueries()) {
                 List<String> studyIds = new ArrayList<>();
