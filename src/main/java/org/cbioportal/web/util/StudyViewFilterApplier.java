@@ -445,17 +445,7 @@ public class StudyViewFilterApplier {
                 );
                 studyViewFilterUtil.extractStudyAndSampleIds(sampleIdentifiers, studyIds, sampleIds);
 
-                List<String> molecularProfileIds = new ArrayList<>();
-                int removedSampleCount = 0;
-                for (int i = 0; i < studyIds.size(); i++) {
-                    String studyId = studyIds.get(i);
-                    if (mapByStudyId.containsKey(studyId)) {
-                        molecularProfileIds.add(mapByStudyId.get(studyId).get(0).getStableId());
-                    } else {
-                        sampleIds.remove(i - removedSampleCount);
-                        removedSampleCount++;
-                    }
-                }
+                List<String> molecularProfileIds = getMolecularProfileIds(mapByStudyId, studyIds, sampleIds);
 
                 sampleIdentifiers = mutationService
                     .getMutationsInMultipleMolecularProfilesByGeneQueries(molecularProfileIds, sampleIds, geneQueries,
@@ -469,6 +459,35 @@ public class StudyViewFilterApplier {
         }
         return sampleIdentifiers;
     }
+    // Helper method to extract study and sample IDs
+private void extractStudyAndSampleIds(List<SampleIdentifier> sampleIdentifiers, List<String> studyIds, List<String> sampleIds) {
+    studyViewFilterUtil.extractStudyAndSampleIds(sampleIdentifiers, studyIds, sampleIds);
+}
+
+// Helper method to remove unmatched sample IDs and retrieve molecular profile IDs
+private List<String> getMolecularProfileIds(Map<String, List<MolecularProfile>> mapByStudyId, List<String> studyIds, List<String> sampleIds) {
+    List<String> molecularProfileIds = new ArrayList<>();
+    int removedSampleCount = 0;
+    for (int i = 0; i < studyIds.size(); i++) {
+        String studyId = studyIds.get(i);
+        if (mapByStudyId.containsKey(studyId)) {
+            molecularProfileIds.add(mapByStudyId.get(studyId).get(0).getStableId());
+        } else {
+            sampleIds.remove(i - removedSampleCount);
+            removedSampleCount++;
+        }
+    }
+    return molecularProfileIds;
+}
+
+// Helper method to fetch sample identifiers based on given service
+private List<SampleIdentifier> fetchSampleIdentifiers(VariantService service, List<String> molecularProfileIds, List<String> sampleIds, List<GeneFilterQuery> geneQueries) {
+    return service.fetchVariantsByGeneQueries(molecularProfileIds, sampleIds, geneQueries)
+        .stream()
+        .map(m -> studyViewFilterUtil.buildSampleIdentifier(m.getStudyId(), m.getSampleId()))
+        .distinct()
+        .collect(Collectors.toList());
+}
 
     private List<SampleIdentifier> filterStructuralVariantGenes(List<GeneFilter> svGenefilters,
                                                                 Map<String, MolecularProfile> molecularProfileMap, List<SampleIdentifier> sampleIdentifiers) {
@@ -514,17 +533,7 @@ public class StudyViewFilterApplier {
 
                 studyViewFilterUtil.extractStudyAndSampleIds(sampleIdentifiers, studyIds, sampleIds);
 
-                List<String> molecularProfileIds = new ArrayList<>();
-                int removedSampleCount = 0;
-                for (int i = 0; i < studyIds.size(); i++) {
-                    String studyId = studyIds.get(i);
-                    if (mapByStudyId.containsKey(studyId)) {
-                        molecularProfileIds.add(mapByStudyId.get(studyId).get(0).getStableId());
-                    } else {
-                        sampleIds.remove(i - removedSampleCount);
-                        removedSampleCount++;
-                    }
-                }
+                List<String> molecularProfileIds = getMolecularProfileIds(mapByStudyId, studyIds, sampleIds);
 
                 sampleIdentifiers = structuralVariantService
                     .fetchStructuralVariantsByGeneQueries(molecularProfileIds, sampleIds, geneQueries)
